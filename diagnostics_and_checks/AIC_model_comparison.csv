@@ -1,0 +1,5 @@
+"Model","AIC","Delta AIC","df","AICw"
+"Negative binomial",16920.5,0,15,"0.73"
+"Negative binomial with zero inflation",16922.5,2,16,"0.27"
+"Poisson",17024.2,103.7,14,"< 0.01"
+"Poisson with zero inflation",NA,NA,15,NA
