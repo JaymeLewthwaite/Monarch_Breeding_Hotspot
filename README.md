@@ -1,6 +1,6 @@
 Code and data used to produce the results and figures found in Lewthwaite et. al. "Continental breeding hotspots of migratory monarch butterflies revealed by coordinated community science partnership"
 
-This repository contains the scripts to complete all analyses in the manuscript, as well model outputs (???) and required data inputs are included. Scripts are organized by the figure they correspond to, under the folder "scripts", and all data for both figures is in the folder "data"
+This repository contains the scripts to complete all analyses in the manuscript, as well model outputs and required data inputs. Scripts are organized by the figure they correspond to, under the folder "scripts", and all data for both figures is in the folder "data". The model_outputs folder contains fitted statistical models, model comparison and diagnostic results, variance partitioning estimates, and spatial predictions used to generate Figure 2. These outputs allow users to inspect the model results and reproduce the figures without refitting the models.
 
 # Figure 1: Descriptive Statistics for the Blitz Program
 
