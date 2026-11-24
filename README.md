@@ -25,10 +25,10 @@ This R script fits generalized linear mixed-effects models (GLMMs) to examine sp
 
 The script compares alternative model distributions, evaluates model diagnostics, conducts sensitivity analyses, partitions variance among model components, and generates a multi-panel figure.
 
-Panel A: Predicted monarch larval abundance per 100 milkweed stems across North America at five spatial resolutions (H3 hexagonal grids).
-Panel B: Proportion of model-scale variance attributed to fixed effects, spatial random effects, year, ecoregion, survey, and unexplained variation.
-Panel C: Distribution of predicted monarch larval abundance per 100 milkweed stems across survey locations.
-Panel D: Relationship between annual maximum temperature and year-specific random effects.
+- **Panel A-E:**  Predicted monarch larval abundance per 100 milkweed stems across North America at five spatial resolutions (H3 hexagonal grids).
+- **Panel F:**  Proportion of model-scale variance attributed to fixed effects, spatial random effects, year, ecoregion, survey, and unexplained variation.
+- **Panel G:**  Distribution of predicted monarch larval abundance per 100 milkweed stems across survey locations.
+- **Panel H:** Relationship between annual maximum temperature and year-specific random effects.
 
 ## Required Inputs
 
