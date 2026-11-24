@@ -129,14 +129,21 @@ hex_res5 <- st_transform(hex_res5, st_crs(points))
 hex_res4 <- st_transform(hex_res4, st_crs(points))
 hex_res3 <- st_transform(hex_res3, st_crs(points))
 
-# # grid for supplementary material
-# ggplot() +
-#   geom_sf(data = hex_res3, fill = NA, color = "darkred",    linewidth = 0.6) +
-#   geom_sf(data = hex_res4, fill = NA, color = "red",    linewidth = 0.6) +
-#   geom_sf(data = hex_res5, fill = NA, color = "orange", linewidth = 0.4) +
-#   geom_sf(data = hex_res6, fill = NA, color = "gold",   linewidth = 0.2) +
-#   geom_sf(data = points,   size = 0.5) +
-#   theme_minimal()
+# grid for supplementary material
+hex_grid<-ggplot() +
+  geom_sf(data = hex_res3, fill = NA, color = "darkred",    linewidth = 0.6) +
+  geom_sf(data = hex_res4, fill = NA, color = "red",    linewidth = 0.6) +
+  geom_sf(data = hex_res5, fill = NA, color = "orange", linewidth = 0.4) +
+  geom_sf(data = hex_res6, fill = NA, color = "gold",   linewidth = 0.2) +
+  geom_sf(data = points,   size = 0.5) +
+  theme_minimal()
+
+ggsave("Plot - Map of nested, hexagonal spatial units.png",
+       plot   = hex_grid,
+       width  = 30,
+       height = 20,
+       dpi    = 300,
+       bg     = "white")
 
 # assign IDs to hex grid
 hex_res7 <- hex_res7 %>% mutate(hex_id_res7 = h3_address)
@@ -232,7 +239,7 @@ hex_summary$resolution <- factor(
   labels = c("12,500 km²","750 km²",
     "250 km²","90 km²", "25 km²"))
 
-ggplot(hex_summary,
+hex_summary_plot<-ggplot(hex_summary,
        aes(x = log2(n_points))) +
   geom_histogram(binwidth = 1,
                  fill = "steelblue",
@@ -247,15 +254,35 @@ ggplot(hex_summary,
   ) +
   theme_bw(base_size = 13)
 
+ggsave("Plot - Number of points per hexagon.png",
+       plot   = hex_summary,
+       width  = 30,
+       height = 20,
+       dpi    = 300,
+       bg     = "white")
+
 # table for supplementary material
 multi_obs_summary <- hex_summary %>%
   group_by(resolution) %>%
   summarise(
-    total_hexagons = n(),
-    hexagons_gt1   = sum(n_points > 1),
-    prop_gt1       = mean(n_points > 1),
+    `Total # of hexgrid cells` = n(),
+    `Total # of hexgrid cells with > 1 observation` = sum(n_points > 1),
+    `Proportion of hexgrid cells with > 1 observation` =
+      paste0(round(100 * mean(n_points > 1)), "%"),
     .groups = "drop"
-  )
+  ) %>%
+  rename(Resolution = resolution) %>%
+  arrange(desc(Resolution))
+
+# View table
+print(multi_obs_summary)
+
+# Export table as CSV
+write.csv(
+  multi_obs_summary,
+  "Proportion_hex_grids_with_single_observation.csv",
+  row.names = FALSE
+)
 
 multi_obs_summary
 
@@ -289,9 +316,43 @@ m_zinb <- glmmTMB(fixed, family = nbinom2(),   offset = log(StemCount),
                   ziformula = ~1, data = data_model)
 
 # check support based on AIC
-AICtab(m_pois, m_nb, m_zip, m_zinb,
+model_comparison<-AICtab(m_pois, m_nb, m_zip, m_zinb,
        weights = TRUE, delta = TRUE, base = TRUE)
 # best model: negative binomial with no zero inflation term
+
+# Convert to a formatted table
+model_comparison_table <- as.data.frame(model_comparison) %>%
+  tibble::rownames_to_column("Model") %>%
+  mutate(
+    Model = recode(
+      Model,
+      "m_nb"   = "Negative binomial",
+      "m_zinb" = "Negative binomial with zero inflation",
+      "m_pois" = "Poisson",
+      "m_zip"  = "Poisson with zero inflation"
+    ),
+    AIC = round(as.numeric(AIC), 1),
+    `Delta AIC` = round(as.numeric(dAIC), 1),
+    df = as.integer(df),
+    AICw = case_when(
+      is.na(weight) ~ NA_character_,
+      as.numeric(weight) < 0.01 ~ "< 0.01",
+      TRUE ~ sprintf("%.2f", as.numeric(weight))
+    )
+  ) %>%
+  select(Model, AIC, `Delta AIC`, df, AICw) %>%
+  arrange(AIC)
+
+# View table
+print(model_comparison_table)
+
+# Export table
+write.csv(
+  model_comparison_table,
+  "AIC_model_comparison.csv",
+  row.names = FALSE,
+  na = "NA"
+)
 
 # check model diagnostics with DHARMa
 sim_diagnostics <- function(model, model_name, n_sim = 500) {
@@ -380,22 +441,75 @@ compare_re <- function(mod1, mod2) {
   
   out <- lapply(common, function(grp) {
     
-    d1 <- data.frame(level = rownames(re1[[grp]]),
-      re1 = re1[[grp]][,1])
+    d1 <- data.frame(
+      level = rownames(re1[[grp]]),
+      re1 = re1[[grp]][, 1]
+    )
     
-    d2 <- data.frame(level = rownames(re2[[grp]]),
-      re2 = re2[[grp]][,1])
+    d2 <- data.frame(
+      level = rownames(re2[[grp]]),
+      re2 = re2[[grp]][, 1]
+    )
     
     d <- merge(d1, d2, by = "level")
     
-    data.frame(Group = grp,
+    data.frame(
+      Group = grp,
       Levels = nrow(d),
-      Correlation = cor(d$re1, d$re2))
+      Correlation = round(cor(d$re1, d$re2), 2)
+    )
   })
+  
   do.call(rbind, out)
 }
 
-compare_re(m_pheno_lat, m_pheno_lat_max)
+# Generate formatted table
+re_comparison <- compare_re(m_pheno_lat, m_pheno_lat_max) %>%
+  mutate(
+    `Random effect` = recode(
+      Group,
+      "hex_id_res7:hex_id_res6:hex_id_res5:hex_id_res4:hex_id_res3" = "25 km2 grid",
+      "hex_id_res6:hex_id_res5:hex_id_res4:hex_id_res3" = "90 km2 grid",
+      "hex_id_res5:hex_id_res4:hex_id_res3" = "250 km2 grid",
+      "hex_id_res4:hex_id_res3" = "750 km2 grid",
+      "hex_id_res3" = "12,500 km2 grid",
+      "SurveyID" = "Survey ID",
+      "Ecoregion" = "Ecoregion",
+      "YearCollected" = "Year of sampling"
+    )
+  ) %>%
+  select(
+    `Random effect`,
+    `Number of levels` = Levels,
+    Correlation
+  ) %>%
+  mutate(
+    `Random effect` = factor(
+      `Random effect`,
+      levels = c(
+        "25 km2 grid",
+        "90 km2 grid",
+        "250 km2 grid",
+        "750 km2 grid",
+        "12,500 km2 grid",
+        "Survey ID",
+        "Ecoregion",
+        "Year of sampling"
+      )
+    )
+  ) %>%
+  arrange(`Random effect`) %>%
+  mutate(`Random effect` = as.character(`Random effect`))
+
+# View table
+print(re_comparison)
+
+# Export as CSV
+write.csv(
+  re_comparison,
+  "Random_effect_correlations.csv",
+  row.names = FALSE
+)
 
 # check phenology 
 # latitudes for prediction: mean ± 1 SD 
