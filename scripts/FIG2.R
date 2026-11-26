@@ -138,7 +138,7 @@ hex_grid<-ggplot() +
   geom_sf(data = points,   size = 0.5) +
   theme_minimal()
 
-ggsave("Plot - Map of nested, hexagonal spatial units.png",
+ggsave("diagnostics_and_checks/Plot - Map of nested, hexagonal spatial units.png",
        plot   = hex_grid,
        width  = 30,
        height = 20,
@@ -172,6 +172,9 @@ data_model <- st_drop_geometry(points[, c(1:4, 13:16, 44, 50:54)]) |>
 data_model_max <- data_model
 data_model_max$LarvaeCount <- data_max$LarvaeCount
 data_model_max$StemCount <- data_max$StemCount
+data_model_max$JulianDay <- data_max$JulianDay #JL added this line
+data_model_max$SurveyID <- factor(data_max$SurveyID) #JL added this line
+
 
 ############################################################################
 ###   SUPPL MAT   ##########################################################
@@ -254,7 +257,7 @@ hex_summary_plot<-ggplot(hex_summary,
   ) +
   theme_bw(base_size = 13)
 
-ggsave("Plot - Number of points per hexagon.png",
+ggsave("diagnostics_and_checks/Plot - Number of points per hexagon.png",
        plot   = hex_summary,
        width  = 30,
        height = 20,
@@ -280,7 +283,7 @@ print(multi_obs_summary)
 # Export table as CSV
 write.csv(
   multi_obs_summary,
-  "Proportion_hex_grids_with_single_observation.csv",
+  "diagnostics_and_checks/Proportion_hex_grids_with_multiple_observations.csv",
   row.names = FALSE
 )
 
@@ -347,12 +350,10 @@ model_comparison_table <- as.data.frame(model_comparison) %>%
 print(model_comparison_table)
 
 # Export table
-write.csv(
-  model_comparison_table,
-  "AIC_model_comparison.csv",
+write.csv(model_comparison_table,
+  "diagnostics_and_checks/AIC_model_comparison.csv",
   row.names = FALSE,
-  na = "NA"
-)
+  na = "NA")
 
 # check model diagnostics with DHARMa
 sim_diagnostics <- function(model, model_name, n_sim = 500) {
@@ -430,7 +431,9 @@ m_pheno_lat_max <- glmmTMB(
 summary(m_pheno_lat)
 summary(m_pheno_lat_max)
 
-# check whether the model outcome is sensitive to random selectio of one 
+saveRDS(m_pheno_lat, "model_outputs/m_pheno_lat.rds")
+
+# check whether the model outcome is sensitive to random selection of one 
 # sample in years with multiple observations from the same location
 compare_re <- function(mod1, mod2) {
   
@@ -507,7 +510,7 @@ print(re_comparison)
 # Export as CSV
 write.csv(
   re_comparison,
-  "Random_effect_correlations.csv",
+  "diagnostics_and_checks/Random_effect_correlations.csv",
   row.names = FALSE
 )
 
@@ -575,7 +578,7 @@ re_df <- re_df %>%
         "hex_id_res5","hex_id_res6","hex_id_res7"),
       labels = c("12,500 km2","750 km2","250 km2","90 km2", "25 km2")))
 
-ggplot(re_df, aes(n_obs, intercept)) +
+num_obs_vs_intercept <- ggplot(re_df, aes(n_obs, intercept)) +
   geom_jitter(
     width = 0.05,
     height = 0,
@@ -594,6 +597,15 @@ ggplot(re_df, aes(n_obs, intercept)) +
   theme_bw() +
   labs(x = "Number of observations",
     y = "Estimated random intercept")
+
+plot(num_obs_vs_intercept)
+
+ggsave("diagnostics_and_checks/Plot - Number of observations vs. Random Intercept Estimate.png",
+       plot   = num_obs_vs_intercept,
+       width  = 30,
+       height = 20,
+       dpi    = 300,
+       bg     = "white")
 
 # no support for the hypothesis that sites with many observations were predicted
 # as hotspots. Instead, hexbin random intercepts tended to decline when the hexagon
@@ -909,7 +921,7 @@ phist <- ggplot(pred_df, aes(x = pred_count)) +
 # final_plot
 
 ###
-### YEAR RANDOM EFFECTS VS YEARLY TEMPERATURE - JL ADDITION
+### YEAR RANDOM EFFECTS VS YEARLY TEMPERATURE
 ###
 
 #since temperature is not currently in m_pheno_lat, this plot is asking whether unexplained year-to-year variation aligns with annual temperature.
