@@ -40,6 +40,9 @@ H3 hexagonal grids are generated within the script and do not require separate i
 
 ## Outputs:
 
+Model Outputs:
+1. "model_outputs/m_pheno_lat.rds" <- Fitted negative binomial mixed-effects model used to quantify spatial and temporal variation in monarch larval abundance per milkweed stem and identify breeding hotspots across North America.
+
 Diagnostic plots and summaries:
 1. "diagnostics_and_checks/Plot - Map of nested, hexagonal spatial units.png" <- Distribution of nested, hexagonal spatial units used as spatial grouping identifiers in the random effects specified in our model. Every hexagon mapped includes at least one observation, and typically more
 2. "diagnostics_and_checks/Plot - Number of points per hexagon.jpg" <- Number of sampling events within hexagonal grids of different sizes.
