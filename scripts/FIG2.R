@@ -646,8 +646,7 @@ vars <- c(
   hex3      = var_hex3,
   year      = var_year,
   ecoregion = var_ecoregion,
-  survey    = var_survey
-)
+  survey    = var_survey)
 
 # partitioning random variance
 random_total <- r2_cond - r2_marginal
@@ -727,8 +726,7 @@ jday_grid <- data.frame(
   SurveyID      = NA,                                          # added
   hex_id_res3   = NA, hex_id_res4 = NA, hex_id_res5 = NA,
   hex_id_res6   = NA, hex_id_res7 = NA,
-  YearCollected = NA, Ecoregion   = NA
-)
+  YearCollected = NA, Ecoregion   = NA)
 
 jday_grid$pred <- predict(m_pheno_lat, newdata = jday_grid,
                           type = "link", re.form = NA,
@@ -745,8 +743,7 @@ fe_at_peak_lat <- function(lat_vec) {
     SurveyID      = NA,                                        # added
     hex_id_res3   = NA, hex_id_res4 = NA, hex_id_res5 = NA,
     hex_id_res6   = NA, hex_id_res7 = NA,
-    YearCollected = NA, Ecoregion   = NA
-  )
+    YearCollected = NA, Ecoregion   = NA)
   predict(m_pheno_lat, newdata = grid, type = "link",
           re.form = NA, allow.new.levels = TRUE)
 }
@@ -767,8 +764,7 @@ hex_res3 <- add_latitude(hex_res3)
 make_re_sf <- function(re_component, res_level, hex_sf) {
   df <- data.frame(
     h3_index = sapply(strsplit(rownames(re_component), ":"), `[`, res_level),
-    re_value = re_component[, 1]
-  ) %>%
+    re_value = re_component[, 1]) %>%
     group_by(h3_index) %>%
     summarise(re_value = mean(re_value))
   left_join(hex_sf, df, by = c("h3_address" = "h3_index"))
@@ -794,15 +790,13 @@ add_eco_re <- function(sf_obj, hex_col) {
   sf_obj %>%
     left_join(
       hex_to_eco %>% select(all_of(hex_col), Ecoregion) %>% distinct(),
-      by = c("h3_address" = hex_col)
-    ) %>%
+      by = c("h3_address" = hex_col)) %>%
     left_join(re_eco_df, by = "Ecoregion") %>%
     mutate(
       re_value  = replace_na(re_value, 0),
       re_eco    = replace_na(re_eco, 0),
       fe_peak   = fe_at_peak_lat(latitude),
-      count_100 = exp(fe_peak + re_value + re_eco + log(100))
-    )
+      count_100 = exp(fe_peak + re_value + re_eco + log(100)))
 }
 
 re_res7_sf <- add_eco_re(re_res7_sf, "hex_id_res7")
@@ -810,6 +804,25 @@ re_res6_sf <- add_eco_re(re_res6_sf, "hex_id_res6")
 re_res5_sf <- add_eco_re(re_res5_sf, "hex_id_res5")
 re_res4_sf <- add_eco_re(re_res4_sf, "hex_id_res4")
 re_res3_sf <- add_eco_re(re_res3_sf, "hex_id_res3")
+
+# Average predicted larval densities for hexagons containing observations from multiple ecoregions
+# Addition by JL
+
+average_eco_predictions <- function(sf_obj) {
+  sf_obj %>%
+    group_by(h3_address) %>%
+    mutate(
+      count_100 = mean(count_100),
+      n_ecoregions = n_distinct(Ecoregion)) %>%
+    ungroup() %>%
+    distinct(h3_address, .keep_all = TRUE) %>%
+    select(-Ecoregion, -re_eco)}
+
+re_res7_sf <- average_eco_predictions(re_res7_sf)
+re_res6_sf <- average_eco_predictions(re_res6_sf)
+re_res5_sf <- average_eco_predictions(re_res5_sf)
+re_res4_sf <- average_eco_predictions(re_res4_sf)
+re_res3_sf <- average_eco_predictions(re_res3_sf)
 
 # midpoint reference
 midpoint_count <- exp(fe_at_peak_lat(lat_mean) + log(100))
@@ -823,7 +836,8 @@ north_america <- ne_countries(continent = "North America", returnclass = "sf") %
 
 make_map3 <- function(sf_obj, title) {
   panel_range  <- range(log10(sf_obj$count_100), na.rm = TRUE)
-  panel_breaks <- seq(panel_range[1], panel_range[2], length.out = 5)
+  #panel_breaks <- seq(panel_range[1], panel_range[2], length.out = 5)
+  panel_breaks <- seq(panel_range[1], panel_range[2], length.out = 3)
   panel_labels <- round(10^panel_breaks, 1)
 
   ggplot() +
@@ -835,11 +849,11 @@ make_map3 <- function(sf_obj, title) {
       limits   = panel_range,
       breaks   = panel_breaks,
       labels   = panel_labels,
-      name     = "Larvae per\n100 stems"
-    ) +
+      name     = "Larvae per\n100 stems") +
     coord_sf(crs  = st_crs(hex_res7),
              xlim = st_bbox(sf_obj)[c("xmin", "xmax")],
-             ylim = st_bbox(sf_obj)[c("ymin", "ymax")]) +
+             ylim = st_bbox(sf_obj)[c("ymin", "ymax")],
+             datum = NA) +
     labs(title = title) +
     theme_minimal() +
     theme(axis.text = element_blank(), axis.ticks = element_blank(), panel.grid = element_blank())
@@ -847,7 +861,8 @@ make_map3 <- function(sf_obj, title) {
 
 make_map_points <- function(sf_obj, title) {
   panel_range  <- range(log10(sf_obj$count_100), na.rm = TRUE)
-  panel_breaks <- seq(panel_range[1], panel_range[2], length.out = 5)
+  #panel_breaks <- seq(panel_range[1], panel_range[2], length.out = 5)
+  panel_breaks <- seq(panel_range[1], panel_range[2], length.out = 3)
   panel_labels <- round(10^panel_breaks, 1)
   
   centroids <- sf_obj %>%
@@ -862,11 +877,11 @@ make_map_points <- function(sf_obj, title) {
       limits   = panel_range,
       breaks   = panel_breaks,
       labels   = panel_labels,
-      name     = "Larvae per\n100 stems"
-    ) +
+      name     = "Larvae per\n100 stems") +
     coord_sf(crs  = st_crs(sf_obj),
              xlim = st_bbox(sf_obj)[c("xmin", "xmax")],
-             ylim = st_bbox(sf_obj)[c("ymin", "ymax")]) +
+             ylim = st_bbox(sf_obj)[c("ymin", "ymax")],
+             datum = NA) +
     labs(title = title) +
     theme_minimal() +
     theme(axis.text = element_blank(), 
@@ -883,11 +898,14 @@ p5 <- make_map3(re_res5_sf, "Hexagon area: ~250 km²")
 p4 <- make_map3(re_res4_sf, "Hexagon area: ~750 km²")
 p3 <- make_map3(re_res3_sf, "Hexagon area: ~12,500 km²")
 
+
+
 no_axes <- theme(
   axis.title = element_blank(),
-  axis.text  = element_blank(),
-  axis.ticks = element_blank()
-)
+  axis.text = element_blank(),
+  axis.ticks = element_blank(),
+  axis.ticks.length = unit(0, "pt"),
+  plot.margin = margin(0, 0, 0, 0))
 
 p3 <- p3 + no_axes
 p4 <- p4 + no_axes
@@ -921,7 +939,7 @@ phist <- ggplot(pred_df, aes(x = pred_count)) +
 # final_plot
 
 ###
-### YEAR RANDOM EFFECTS VS YEARLY TEMPERATURE
+### YEAR RANDOM EFFECTS VS YEARLY TEMPERATURE JL ADDITION
 ###
 
 #since temperature is not currently in m_pheno_lat, this plot is asking whether unexplained year-to-year variation aligns with annual temperature.
@@ -959,66 +977,143 @@ p_year_temp <- ggplot(year_re_temp, aes(x = mean_temp, y = year_re)) +
   theme(
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
-    aspect.ratio     = 1.2   # height/width — increase to make it taller, decrease for wider
-  )
+    aspect.ratio     = 1.2)   # height/width — increase to make it taller, decrease for wider
 
-# placeholder for monarch photo
-placeholder <- ggplot() + theme_void() + theme(plot.background = element_rect(fill = "white", colour = NA))
 
-# final_plot <- (parts_stack_plot + phist + placeholder) /
-#   (p7 + p6 + p5) / 
-#   (p4 + p3 + p_year_temp)  
-# #final_plot
-# 
-# final_plot <- ((parts_stack_plot + phist + placeholder) /
-#                  (p7 + p6 + p5) / 
-#                  (p4 + p3 + p_year_temp)) +
-#   plot_annotation(tag_levels = "A") &
-#   theme(text         = element_text(size = 28),
-#         axis.text    = element_text(size = 28),
-#         legend.text  = element_text(size = 28),
-#         title        = element_text(size = 28),
-#         legend.title  = element_text(margin = margin(b = 24)),
-#         legend.key.height = unit(24, "pt"),
-#         legend.key.spacing  = unit(24, "pt")
-#         )
 
 library(patchwork)
 
 design <- "
-BCDE
-AAAA
-AAAA
-AAAA
-AAAA
-FGGI
-"
-design <- "
-AAAAB
-AAAAC
-AAAAD
-AAAAE
-FGGIH
+AAAAAB
+AAAAAC
+AAAAAD
+AAAAAE
+FGGGGH
 "
 
-final_plot <- (p3 + p4 + p5 + p6 + p7 +
-                 parts_stack_plot + phist  + p_year_temp + placeholder) +
-  plot_layout(design = design) +
-  plot_annotation(tag_levels = "A") &
-  theme(text         = element_text(size = 20),
-        axis.text    = element_text(size = 20),
-        legend.text  = element_text(size = 20),
-        title        = element_text(size = 28),
-        legend.title = element_text(margin = margin(b = 18)),
-        legend.key.height  = unit(18, "pt"),
-        legend.key.spacing = unit(18, "pt") )
+common_theme <- theme(
+  text = element_text(size = 20),
+  legend.text = element_text(size = 20),
+  title = element_text(size = 28),
+  legend.title = element_text(margin = margin(b = 18)),
+  legend.key.height = unit(18, "pt"),
+  legend.key.spacing = unit(18, "pt"),
+  plot.tag = element_text(size = 20))
 
+p3_wrapped <- wrap_elements(
+  full = p3 +
+    annotate("rect", #get rid of black border in lower left corner
+        xmin = -1540000,
+        xmax = -1400000,
+        ymin = 220000,
+        ymax = 400000,
+        fill = "white",
+        colour = NA,
+        linewidth = 0) +
+    common_theme +
+    theme(plot.title = element_text(size = 56,margin = margin(b = 0)),
+      legend.title = element_text(size = 46),
+      legend.text = element_text(size = 34),
+      legend.key.height = unit(30, "pt"),
+      legend.key.width = unit(28, "pt"),
+      legend.position = "inside",
+      legend.position.inside = c(0.93, 0.36),
+      legend.justification = c(0.5, 0.5),
+      legend.background = element_rect(fill = "white", colour = NA),
+      plot.margin = margin(0, 15, 0, 65, unit = "pt")))
+
+small_map_theme <- theme(
+  plot.title = element_text(size = 36),
+  legend.title = element_text(
+    size = 30,
+    margin = margin(b = 20)),
+  legend.text = element_text(size = 24),
+  legend.key.height = unit(20, "pt"),
+  legend.key.width = unit(18, "pt"),
+  legend.box.spacing = unit(0, "pt"),
+  legend.margin = margin(0, 0, 0, 0),
+  plot.margin = margin(15, 15, 15, 125, unit = "pt"))
+
+p4 <- p4 + small_map_theme
+p5 <- p5 + small_map_theme
+p6 <- p6 + small_map_theme
+p7 <- p7 + small_map_theme
+
+parts_stack_wrapped <- wrap_elements(full = parts_stack_plot +
+    common_theme +
+    theme(aspect.ratio = NULL,
+      plot.margin = margin(65, 0, 95, 60, unit = "pt"),
+      legend.position = "right",
+      legend.text = element_text(size = 20),
+      legend.key.width = unit(14, "pt"),
+      legend.box.spacing = unit(2, "pt"),
+      axis.title = element_text(size = 30),
+      axis.text = element_text(size = 22)))
+
+phist_wrapped <- wrap_elements(full = phist +
+    common_theme +
+    theme(plot.margin = margin(75, 15, 40, 120, unit = "pt"),
+      axis.title = element_text(size = 30),
+      axis.text = element_text(size = 22)))
+
+p_year_temp_wrapped <- wrap_elements(full = p_year_temp +
+    common_theme +
+    theme(plot.margin = margin(55, 55, 40, -30, unit = "pt"),
+      axis.title = element_text(size = 30),
+      axis.text = element_text(size = 22)))
+
+final_plot <- (p3_wrapped +
+                 p4 +
+                 p5 +
+                 p6 +
+                 p7 +
+                 parts_stack_wrapped +
+                 phist_wrapped +
+                 p_year_temp_wrapped) +
+  plot_layout(design = design,
+    widths = c(1.6, 1, 1, 1, 1, 1.5),
+    heights = c(1, 1, 1, 1, 1.9))+
+  patchwork::plot_annotation(theme = theme(plot.margin = margin(10, 10, 10, 10)))
+
+
+library(cowplot)
+
+final_plot_tagged <- cowplot::ggdraw(final_plot) +
+  cowplot::draw_plot_label(label = LETTERS[1:8],
+    x = c(
+      0.006,  # A
+      0.718,  # B
+      0.718,  # C
+      0.718,  # D
+      0.718,  # E
+      0.018,  # F
+      0.243,  # G
+      0.730), # H
+    y = c(
+      0.994,  # A
+      0.985,  # B
+      0.808,  # C
+      0.632,  # D
+      0.456,  # E
+      0.256,  # F
+      0.256,  # G
+      0.256), # H
+    size = 26,
+    fontface = "plain",
+    hjust = 0,
+    vjust = 1)
+
+# ggsave("FIG2.png",
+#        plot   = final_plot,
+#        width  = 30,
+#        height = 20,
+#        dpi    = 300,
+#        bg     = "white")
 
 ggsave("FIG2.png",
-       plot   = final_plot,
-       width  = 30,
-       height = 20,
-       dpi    = 300,
-       bg     = "white")
-
+  plot = final_plot_tagged,
+  width = 30,
+  height = 24,
+  dpi = 300,
+  bg = "white")
 
