@@ -148,7 +148,7 @@ plot(
   ylab = ""
 )
 
-axis(1, at = nsurvey$YearCollected, las = 2)
+axis(1, at = n_survey$YearCollected, las = 2)
 axis(2, las = 1)
 
 lines(
