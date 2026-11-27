@@ -953,7 +953,7 @@ year_re_df <- data.frame(YearCollected = rownames(re[["YearCollected"]]),
 # Calculate mean yearly temperature from the original model data
 year_temp_df <- data %>%
   group_by(YearCollected) %>%
-  summarise(mean_temp = mean(tmax_0y, na.rm = TRUE),   # change tmax to your temperature column name
+  summarise(mean_temp = mean(tmax_0y, na.rm = TRUE),  
     .groups = "drop")
 
 # Join random effects to temperature
@@ -961,14 +961,6 @@ year_re_temp <- year_re_df %>%
   left_join(year_temp_df, by = "YearCollected")
 
 # Plot relationship
-p_year_temp <- ggplot(year_re_temp, aes(x = mean_temp, y = year_re)) +
-  geom_point(size = 3) +
-  geom_smooth(method = "lm", se = TRUE) +
-  labs(x = "Mean yearly maximum temperature", y = "Year random effect") +
-  theme_minimal(base_size = 14) +
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
-
-# alternative version
 p_year_temp <- ggplot(year_re_temp, aes(x = mean_temp, y = year_re)) +
   geom_smooth(method = "lm", se = TRUE,
               colour = "darkorange", fill = "orange") +
@@ -978,7 +970,7 @@ p_year_temp <- ggplot(year_re_temp, aes(x = mean_temp, y = year_re)) +
   theme(
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
-    aspect.ratio     = 1.2)   # height/width — increase to make it taller, decrease for wider
+    aspect.ratio     = 1.2) 
 
 
 
