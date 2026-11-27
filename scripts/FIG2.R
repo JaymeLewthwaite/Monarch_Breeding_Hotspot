@@ -927,7 +927,8 @@ phist <- ggplot(pred_df, aes(x = pred_count)) +
   ) +
   labs(x = "Predicted Monarch butterfly larvae per 100 stems", y = "Number of survey locations") +
   theme_minimal(base_size = 14) +
-  theme(panel.grid.minor = element_blank(), plot.title = element_text(face = "bold"))
+  theme(panel.grid.minor = element_blank(), plot.title = element_text(face = "bold")) +
+  geom_vline(xintercept = 10.9, colour = "black",linetype = "dashed",linewidth = 1.2)
 
 
 # final_plot <- (p7 + p6 + p5) / (p4 + p3 + phist) +
@@ -1079,29 +1080,33 @@ final_plot <- (p3_wrapped +
 library(cowplot)
 
 final_plot_tagged <- cowplot::ggdraw(final_plot) +
-  cowplot::draw_plot_label(label = LETTERS[1:8],
+  cowplot::draw_plot_label(
+    label = LETTERS[1:8],
     x = c(
       0.006,  # A
-      0.718,  # B
-      0.718,  # C
-      0.718,  # D
-      0.718,  # E
-      0.018,  # F
-      0.243,  # G
-      0.730), # H
+      0.710,  # B
+      0.710,  # C
+      0.710,  # D
+      0.710,  # E
+      0.002,  # F
+      0.220,  # G
+      0.710   # H
+    ),
     y = c(
-      0.994,  # A
-      0.985,  # B
-      0.808,  # C
-      0.632,  # D
-      0.456,  # E
-      0.256,  # F
-      0.256,  # G
-      0.256), # H
-    size = 26,
+      0.995,  # A
+      0.960,  # B
+      0.781,  # C - slightly lower
+      0.601,  # D - slightly lower
+      0.422,  # E
+      0.260,  # F
+      0.260,  # G
+      0.260   # H
+    ),
+    size = 90,
     fontface = "plain",
     hjust = 0,
-    vjust = 1)
+    vjust = 1
+  )
 
 # ggsave("FIG2.png",
 #        plot   = final_plot,
